@@ -15,7 +15,6 @@ import com.threed.jpct.Loader;
 import com.threed.jpct.Logger;
 import com.threed.jpct.Matrix;
 import com.threed.jpct.Object3D;
-import com.threed.jpct.RGBColor;
 import com.threed.jpct.SimpleVector;
 import com.threed.jpct.Texture;
 import com.threed.jpct.TextureManager;
@@ -35,437 +34,452 @@ import java.util.List;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-@SuppressLint("NewApi") public class MyRender  implements GLSurfaceView.Renderer {
+@SuppressLint("NewApi")
+public class MyRender implements GLSurfaceView.Renderer {
 
-	private long time = System.nanoTime();  
-	private FrameBuffer fb = null;
-	private Light sun = null;
-	private Object3D cube = null;
-	private World world = null;
-	private int fps = 0;
-	private Object3D rockModel;
-	private Object3D chongLou;
-	private Object3D mdModel;
-	// TODO: 2019/1/14 添加指南针模型
-	private Object3D mZhi;
-	private Context mContext;
+    private long time = System.nanoTime();
+    private FrameBuffer fb = null;
+    private Light sun = null;
+    private Object3D cube = null;
+    private World world = null;
+    private int fps = 0;
+    private Object3D rockModel;
+    private Object3D chongLou;
+    private Object3D mdModel;
+    private Object3D mZhi;
+    private Context mContext;
 
-	private float touchTurn = 0;
-	private float touchTurnUp = 0;
+    private float touchTurn = 0;
+    private float touchTurnUp = 45;
+    private float touchTurnZ = 135;
 
-	private List<String> mTextureNames;//多张纹理贴图的
-	private String mObjPath;//模型路径
+    private List<String> mTextureNames;//多张纹理贴图的
+    private String mObjPath;//模型路径
 
-	// 行走动画  
-	private int an = 2;  
-	private float ind = 0;  
+    // 行走动画
+    private int an = 2;
+    private float ind = 0;
 
-	public MyRender(Context c) {
-		mContext = c;
-	}
+    public MyRender(Context c) {
+        mContext = c;
+    }
 
-	public void onSurfaceChanged(GL10 gl, int w, int h) {
+    public void onSurfaceChanged(GL10 gl, int w, int h) {
 
-		Log.e("TAG","onSurfaceChanged");
+        Log.e("TAG", "onSurfaceChanged");
 
-		if (fb != null) {
-			fb.dispose();
-		}
-		fb = new FrameBuffer(gl, w, h);
+        if (fb != null) {
+            fb.dispose();
+        }
+        fb = new FrameBuffer(gl, w, h);
 
-		GLES20.glViewport(0, 0, w, h);
+        GLES20.glViewport(0, 0, w, h);
 
-		gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        gl.glClearColor(1.0f, 1.0f, 1.0f, 0.5f);
 
-		world = new World();
-		// 设置了环境光源强度。负:整个场景会变暗;正:将照亮了一切。
-		world.setAmbientLight(150, 150, 150);
+        world = new World();
+        // 设置了环境光源强度。负:整个场景会变暗;正:将照亮了一切。
+        world.setAmbientLight(100, 100, 100);
 
-		// 在World中创建一个新的光源
-		sun = new Light(world);
-		sun.setIntensity(250, 250, 250);
-
-
-		Texture texture4=new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.t)),64,64));
-
-		TextureManager.getInstance().addTexture("texture4",texture4);
-
-		//3D对象
-		mZhi=loadObjModel("1.obj","1.mtl",0.1f);
-		mZhi.setTexture("texture4");
-		mZhi.strip();
-		mZhi.build();
-		//将Object3D对象添加到world集合
-		world.addObject(mZhi);
-
-		Camera cam = world.getCamera();
-		cam.moveCamera(Camera.CAMERA_MOVEOUT, 10);// 以50有速度向后移动Camera（相对于目前的方向）
-		cam.lookAt(mZhi.getTransformedCenter());//返回对象的中心--object3D.getTransformedCenter()
-
-		SimpleVector sv = new SimpleVector();//三维矢量的基础类
-		sv.set(mZhi.getTransformedCenter());
-		sv.y -= 100;//Y方向上减去100
-		sv.z -= 100;//Z方向上减去100
-		sun.setPosition(sv);//设置光源位置
-
-		MemoryHelper.compact();
-		// 强制GC和finalization工作来试图去释放一些内存，同时将当时的内存写入日志，
-		// 这样可以避免动画不连贯的情况，然而，它仅仅是减少这种情况发生的机率
-	}
-
-	public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-		Log.e("TAG","onSurfaceCreated");
-		/**
-		 * gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-		 world = new World();
-
-		 world.setAmbientLight(150, 150, 150);
-
-		 Texture texture = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.rock)), 64, 64));
-		 //Texture texture2 = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.texture2)), 64, 64));
-		 //Texture texture3 = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.ogrobase)), 64, 64));
-		 Texture texture4=new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.t)),64,64));
-
-		 TextureManager.getInstance().addTexture("texture", texture);
-		 //TextureManager.getInstance().addTexture("texture2", texture2);
-		 //TextureManager.getInstance().addTexture("texture3", texture3);
-		 TextureManager.getInstance().addTexture("texture4",texture4);
+        // 在World中创建一个新的光源
+        sun = new Light(world);
+        sun.setIntensity(50, 50, 50);
 
 
-		 cube = Primitives.getCube(10);
-		 cube.calcTextureWrapSpherical();
-		 cube.setTexture("texture");
-		 cube.strip();
-		 cube.build();
+        Texture texture4 = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.demo)), 256, 256));
+        TextureManager.getInstance().addTexture("demo.png", texture4);
 
-		 /**
-		 * rockModel = load3dsModel("rock.3ds", 1);
-		 rockModel.setTexture("texture");
-		 rockModel.strip();
-		 rockModel.build();
-		 rockModel.translate(0, 5, 0);
+        Texture texture5 = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.demo1)), 64, 64));
 
-		 chongLou = load3dsModel("hu.3ds", 1.5f);
-		 chongLou.setTexture("texture2");
-		 chongLou.strip();
-		 chongLou.build();
+        TextureManager.getInstance().addTexture("demo1.png", texture5);
 
-		 mdModel = loadMd2Model("ogro.md2", 0.25f);
-		 mdModel.setTexture("texture3");
-		 mdModel.strip();
-		 mdModel.build();
-		 mdModel.translate(-2, 0, 0);
-		 **/
+        Texture texture6 = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.demo2)), 64, 64));
+
+        TextureManager.getInstance().addTexture("demo2.JPG", texture6);
+
+        //3D对象
+        mZhi = loadObjModel("male02.obj", "male02.mtl", 0.1f);
+//        mZhi.setTexture("pikagen.png");
+        mZhi.strip();
+        mZhi.build();
+        //将Object3D对象添加到world集合
+        world.addObject(mZhi);
+
+        Camera cam = world.getCamera();
+        cam.moveCamera(Camera.CAMERA_MOVEOUT, 10);// 以50有速度向后移动Camera（相对于目前的方向）
+        cam.lookAt(mZhi.getTransformedCenter());//返回对象的中心--object3D.getTransformedCenter()
+
+        SimpleVector sv = new SimpleVector();//三维矢量的基础类
+        sv.set(mZhi.getTransformedCenter());
+        sv.y -= 100;//Y方向上减去100
+        sv.z -= 100;//Z方向上减去100
+        sun.setPosition(sv);//设置光源位置
+
+        MemoryHelper.compact();
+        // 强制GC和finalization工作来试图去释放一些内存，同时将当时的内存写入日志，
+        // 这样可以避免动画不连贯的情况，然而，它仅仅是减少这种情况发生的机率
+    }
+
+    public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+        Log.e("TAG", "onSurfaceCreated");
         /**
-		mZhi=loadObjModel("1.obj","1.mtl",0.1f);
-		mZhi.setTexture("texture4");
-		mZhi.strip();
-		mZhi.build();
+         * gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-		//System.out.println(mdModel.getAnimationSequence().getName(1));
+         world = new World();
 
-		//world.addObject(rockModel);
-		//world.addObject(chongLou);
-		//world.addObject(mdModel);
-		world.addObject(mZhi);
+         world.setAmbientLight(150, 150, 150);
 
-		sun = new Light(world);
-		sun.setIntensity(250, 250, 250);
+         Texture texture = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.rock)), 64, 64));
+         //Texture texture2 = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.texture2)), 64, 64));
+         //Texture texture3 = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.ogrobase)), 64, 64));
+         Texture texture4=new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.t)),64,64));
 
-		Camera cam = world.getCamera();
-		cam.moveCamera(Camera.CAMERA_MOVEOUT, 10);
-		cam.lookAt(cube.getTransformedCenter());
-
-		SimpleVector sv = new SimpleVector();
-		sv.set(cube.getTransformedCenter());
-		sv.y -= 100;
-		sv.z -= 100;
-		sun.setPosition(sv);
-		MemoryHelper.compact();
-		 */
-	}
-
-	public void onDrawFrame(GL10 gl) {
-
-		Log.e("TAG","onDrawFrame");
-
-		// Clears the screen and depth buffer.  
-		gl.glClear(GL10.GL_COLOR_BUFFER_BIT | // OpenGL docs.  
-				GL10.GL_DEPTH_BUFFER_BIT); 
-		//doAnim();
-		fb.clear(RGBColor.BLACK);
-		world.renderScene(fb);
-		world.draw(fb);
-		fb.display();
+         TextureManager.getInstance().addTexture("texture", texture);
+         //TextureManager.getInstance().addTexture("texture2", texture2);
+         //TextureManager.getInstance().addTexture("texture3", texture3);
+         TextureManager.getInstance().addTexture("texture4",texture4);
 
 
-		 if (touchTurn != 0) {
-		 //rockModel.rotateY(touchTurn);
-		 //chongLou.rotateY(touchTurn);
-		// mdModel.rotateY(touchTurn);
-		 mZhi.rotateY(touchTurn);
-		 touchTurn = 0;
-		 }
+         cube = Primitives.getCube(10);
+         cube.calcTextureWrapSpherical();
+         cube.setTexture("texture");
+         cube.strip();
+         cube.build();
+
+         /**
+         * rockModel = load3dsModel("rock.3ds", 1);
+         rockModel.setTexture("texture");
+         rockModel.strip();
+         rockModel.build();
+         rockModel.translate(0, 5, 0);
+
+         chongLou = load3dsModel("hu.3ds", 1.5f);
+         chongLou.setTexture("texture2");
+         chongLou.strip();
+         chongLou.build();
+
+         mdModel = loadMd2Model("ogro.md2", 0.25f);
+         mdModel.setTexture("texture3");
+         mdModel.strip();
+         mdModel.build();
+         mdModel.translate(-2, 0, 0);
+         **/
+        /**
+         mZhi=loadObjModel("1.obj","1.mtl",0.1f);
+         mZhi.setTexture("texture4");
+         mZhi.strip();
+         mZhi.build();
+
+         //System.out.println(mdModel.getAnimationSequence().getName(1));
+
+         //world.addObject(rockModel);
+         //world.addObject(chongLou);
+         //world.addObject(mdModel);
+         world.addObject(mZhi);
+
+         sun = new Light(world);
+         sun.setIntensity(250, 250, 250);
+
+         Camera cam = world.getCamera();
+         cam.moveCamera(Camera.CAMERA_MOVEOUT, 10);
+         cam.lookAt(cube.getTransformedCenter());
+
+         SimpleVector sv = new SimpleVector();
+         sv.set(cube.getTransformedCenter());
+         sv.y -= 100;
+         sv.z -= 100;
+         sun.setPosition(sv);
+         MemoryHelper.compact();
+         */
+    }
+
+    public void onDrawFrame(GL10 gl) {
+
+        Log.e("TAG", "onDrawFrame");
+
+        // Clears the screen and depth buffer.
+        gl.glClearColor(1.0f, 1.0f, 1.0f, 0.5f);
+        gl.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+//        GLES20.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+//        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        //doAnim();
+        //fb.clear(RGBColor.BLACK);
+        world.renderScene(fb);
+        world.draw(fb);
+        fb.display();
+
+        if (touchTurnZ != 0) {
+            //rockModel.rotateY(touchTurn);
+            //chongLou.rotateY(touchTurn);
+            // mdModel.rotateY(touchTurn);
+            mZhi.rotateZ(touchTurnZ);
+            touchTurnZ = 0;
+        }
+        if (touchTurn != 0) {
+            //rockModel.rotateY(touchTurn);
+            //chongLou.rotateY(touchTurn);
+            // mdModel.rotateY(touchTurn);
+            mZhi.rotateY(touchTurn);
+            touchTurn = 0;
+        }
 
 
-		 if (touchTurnUp != 0) {
-		 //rockModel.rotateX(touchTurnUp);
-		 //chongLou.rotateX(touchTurnUp);
-		// mdModel.rotateX(touchTurnUp);
-		 mZhi.rotateX(touchTurnUp);
-		 touchTurnUp = 0;
-		 }
+        if (touchTurnUp != 0) {
+            //rockModel.rotateX(touchTurnUp);
+            //chongLou.rotateX(touchTurnUp);
+            // mdModel.rotateX(touchTurnUp);
+            mZhi.rotateX(touchTurnUp);
+            touchTurnUp = 0;
+        }
 
-		if (System.nanoTime() - time >= 1000000000) {
-			Logger.log(fps + "fps");
-			Log.e("FPSCounter", "fps: " + fps);
+        if (System.nanoTime() - time >= 1000000000) {
+            Logger.log(fps + "fps");
+            Log.e("FPSCounter", "fps: " + fps);
 
-			//System.out.println(fps+"fps");
-			fps = 0;
-			time = System.nanoTime() ;
-		}
-		//
-		fps++;
-	}
-
-
-
-	public static int loadShader(int type, String shaderCode){  
-
-		// create a vertex shader type (GLES20.GL_VERTEX_SHADER)  
-		// or a fragment shader type (GLES20.GL_FRAGMENT_SHADER)  
-		int shader = GLES20.glCreateShader(type);  
-
-		// add the source code to the shader and compile it  
-		GLES20.glShaderSource(shader, shaderCode);  
-		GLES20.glCompileShader(shader);  
-
-		return shader;  
-	}  
-
-	public Object3D load3dsModel(String filename, float scale){
-		InputStream is = null;
-		try {
-			is =mContext.getAssets().open(filename);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		Object3D[] model = Loader.load3DS(is, scale);
-		Object3D o3d = new Object3D(0);
-		Object3D temp = null;
-		for (int i = 0; i < model.length; i++) {
-			temp = model[i];
-			temp.setCenter(SimpleVector.ORIGIN);
-			temp.rotateX((float)( -.5*Math.PI));
-			temp.rotateMesh();
-			temp.setRotationMatrix(new Matrix());
-			o3d = Object3D.mergeObjects(o3d, temp);
-			o3d.build();
-		}
-		return o3d;	
-	}
-	public Object3D loadObjModel(String objName,String mtlName,float scale){
-		InputStream objIs=null;
-		InputStream mtlIs=null;
-		try {
-			objIs=mContext.getAssets().open(objName);
-			mtlIs=mContext.getAssets().open(mtlName);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		Object3D[] model=Loader.loadOBJ(objIs,mtlIs,scale);
-        Object3D obj=new Object3D(0);
-		Object3D temp = null;
-		for (int i = 0; i < model.length; i++) {
-			temp = model[i];
-			temp.setCenter(SimpleVector.ORIGIN);
-			temp.rotateX((float)( -.5*Math.PI));
-			temp.rotateMesh();
-			temp.setRotationMatrix(new Matrix());
-			obj = Object3D.mergeObjects(obj, temp);
-			obj.build();
-		}
-		return obj;
-	}
-
-	public Object3D loadMd2Model(String filename, float scale)
-	{
-		InputStream is = null;
-		try {
-			is =mContext.getAssets().open(filename);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		Object3D model = Loader.loadMD2(is, scale);  
-		return model;  
-
-	}
-
-	public void doAnim() {  
-		//每一帧加0.018f  
-		ind += 0.018f;  
-		if (ind > 1f) {  
-		ind -= 1f;
-		}  
-		mdModel.animate(ind, an); 
-	}
+            //System.out.println(fps+"fps");
+            fps = 0;
+            time = System.nanoTime();
+        }
+        //
+        fps++;
+    }
 
 
-	public void setTouchTurn(float count)
-	{
-		touchTurn = count;
-	}
+    public static int loadShader(int type, String shaderCode) {
 
-	public void setTouchTurnUp(float count)
-	{
-		touchTurnUp = count;
-	}
+        // create a vertex shader type (GLES20.GL_VERTEX_SHADER)
+        // or a fragment shader type (GLES20.GL_FRAGMENT_SHADER)
+        int shader = GLES20.glCreateShader(type);
+
+        // add the source code to the shader and compile it
+        GLES20.glShaderSource(shader, shaderCode);
+        GLES20.glCompileShader(shader);
+
+        return shader;
+    }
+
+    public Object3D load3dsModel(String filename, float scale) {
+        InputStream is = null;
+        try {
+            is = mContext.getAssets().open(filename);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        Object3D[] model = Loader.load3DS(is, scale);
+        Object3D o3d = new Object3D(0);
+        Object3D temp = null;
+        for (int i = 0; i < model.length; i++) {
+            temp = model[i];
+            temp.setCenter(SimpleVector.ORIGIN);
+            temp.rotateX((float) (-.5 * Math.PI));
+            temp.rotateMesh();
+            temp.setRotationMatrix(new Matrix());
+            o3d = Object3D.mergeObjects(o3d, temp);
+            o3d.build();
+        }
+        return o3d;
+    }
+
+    public Object3D loadObjModel(String objName, String mtlName, float scale) {
+        InputStream objIs = null;
+        InputStream mtlIs = null;
+        try {
+            objIs = mContext.getAssets().open(objName);
+            mtlIs = mContext.getAssets().open(mtlName);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Object3D[] model = Loader.loadOBJ(objIs, mtlIs, scale);
+        Log.d("aa", "aaa");
+        Object3D obj = new Object3D(0);
+        Object3D temp = null;
+        for (int i = 0; i < model.length; i++) {
+            temp = model[i];
+            temp.setCenter(SimpleVector.ORIGIN);
+            temp.rotateX((float) (-.5 * Math.PI));
+            temp.rotateMesh();
+            temp.setRotationMatrix(new Matrix());
+            obj = Object3D.mergeObjects(obj, temp);
+            obj.build();
+        }
+        return obj;
+    }
+
+    public Object3D loadMd2Model(String filename, float scale) {
+        InputStream is = null;
+        try {
+            is = mContext.getAssets().open(filename);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        Object3D model = Loader.loadMD2(is, scale);
+        return model;
+
+    }
+
+    public void doAnim() {
+        //每一帧加0.018f
+        ind += 0.018f;
+        if (ind > 1f) {
+            ind -= 1f;
+        }
+        mdModel.animate(ind, an);
+    }
 
 
-	public void cleanUp(){
+    public void setTouchTurn(float count) {
+        touchTurn = count;
+    }
 
-		TextureManager.getInstance().removeTexture("texture");
-		TextureManager.getInstance().removeTexture("texture4");
-	}
+    public void setTouchTurnUp(float count) {
+        touchTurnUp = count;
+    }
 
-	/**
-	 * 解析OBJ模型 得到MTL文件
-	 * @param objPath
-	 * @return
-	 */
-	private String readMtlName(String objPath){
-		mObjPath=objPath;
-		String mtlName=null;
-		File objFile=new File(objPath);
-		try {
-			InputStream inputStream=new FileInputStream(objFile);
-		    Log.e("TAG","inputStream:"+(inputStream==null?"null":inputStream));
-		    if (inputStream!=null){
-				InputStreamReader inputStreamReader=new InputStreamReader(inputStream);
-				BufferedReader bufferedReader=new BufferedReader(inputStreamReader);
-				String line;
-				//分行读取
-				while ((line=bufferedReader.readLine())!=null){
-					 Log.e("TAG","line:"+line);
-					 int idx=line.indexOf("mtllib");
-					 if (idx>0){
-					 	mtlName=line.substring(idx+7);
-					 	break;
-					 }else if (line.startsWith("v")){//顶点
 
-						 break;
-					 }
-				}
-				bufferedReader.close();
-				inputStreamReader.close();
-				inputStream.close();
-			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+    public void cleanUp() {
 
-		return mtlName;
-	}
+        TextureManager.getInstance().removeTexture("texture");
+        TextureManager.getInstance().removeTexture("texture4");
+    }
 
-	/**
-	 * 解析mtl文件，得到texture文件
-	 * @param mtlPath
-	 * @return
-	 */
-    private int parseTextureNames(String mtlPath){
+    /**
+     * 解析OBJ模型 得到MTL文件
+     *
+     * @param objPath
+     * @return
+     */
+    private String readMtlName(String objPath) {
+        mObjPath = objPath;
+        String mtlName = null;
+        File objFile = new File(objPath);
+        try {
+            InputStream inputStream = new FileInputStream(objFile);
+            Log.e("TAG", "inputStream:" + (inputStream == null ? "null" : inputStream));
+            if (inputStream != null) {
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                String line;
+                //分行读取
+                while ((line = bufferedReader.readLine()) != null) {
+                    Log.e("TAG", "line:" + line);
+                    int idx = line.indexOf("mtllib");
+                    if (idx > 0) {
+                        mtlName = line.substring(idx + 7);
+                        break;
+                    } else if (line.startsWith("v")) {//顶点
 
-		try {
-			File mtlFile=new File(mtlPath);
-			String textureName=null;
-			InputStream inputStream=new FileInputStream(mtlFile);
-			Log.e("TAG","inputStream--"+(inputStream==null?"null":inputStream));
-			if (inputStream!=null){
-				InputStreamReader inputStreamReader=new InputStreamReader(inputStream);
-				BufferedReader bufferedReader=new BufferedReader(inputStreamReader);
-				String line;
-				//分行读取
-				while ((line=bufferedReader.readLine())!=null){
-                         Log.e("TAG","line--"+line);
-                         int idx=line.indexOf("map_Kd");
-                         if (idx>0){
-							 textureName=line.substring(idx+7);
-                              if (!(TextureManager.getInstance().containsTexture(textureName))){
-                                   TextureManager.getInstance().addTexture(textureName);
-                                   mTextureNames.add(textureName);
-                              }
-						 } else if ((idx=line.indexOf("map_Ka"))>=0){
-                              	     textureName=line.substring(idx+7);
-                              	     if (!TextureManager.getInstance().containsTexture(textureName)){
-										 TextureManager.getInstance().addTexture(textureName);
-										 mTextureNames.add(textureName);
-									 }
-							  }
-				}
-				bufferedReader.close();
-				inputStreamReader.close();
-				inputStream.close();
-			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+                        break;
+                    }
+                }
+                bufferedReader.close();
+                inputStreamReader.close();
+                inputStream.close();
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-		return TextureManager.getInstance().getTextureCount();
-	}
+        return mtlName;
+    }
 
-	/**
-	 * 加载所有纹理
-	 */
-	private void loadTextures(){
+    /**
+     * 解析mtl文件，得到texture文件
+     *
+     * @param mtlPath
+     * @return
+     */
+    private int parseTextureNames(String mtlPath) {
 
-		TextureManager tm=TextureManager.getInstance();
-		for (int i=0;i<mTextureNames.size();i++){
-			 String name=mTextureNames.get(i);
-		     Log.e("TAG","texure name"+name);
-		     if (tm.containsTexture(name)){
-		     	tm.removeAndUnload(name,fb);
-			 }
-			 else {
-		     	int idx=mObjPath.lastIndexOf('/');
+        try {
+            File mtlFile = new File(mtlPath);
+            String textureName = null;
+            InputStream inputStream = new FileInputStream(mtlFile);
+            Log.e("TAG", "inputStream--" + (inputStream == null ? "null" : inputStream));
+            if (inputStream != null) {
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                String line;
+                //分行读取
+                while ((line = bufferedReader.readLine()) != null) {
+                    Log.e("TAG", "line--" + line);
+                    int idx = line.indexOf("map_Kd");
+                    if (idx > 0) {
+                        textureName = line.substring(idx + 7);
+                        if (!(TextureManager.getInstance().containsTexture(textureName))) {
+                            TextureManager.getInstance().addTexture(textureName);
+                            mTextureNames.add(textureName);
+                        }
+                    } else if ((idx = line.indexOf("map_Ka")) >= 0) {
+                        textureName = line.substring(idx + 7);
+                        if (!TextureManager.getInstance().containsTexture(textureName)) {
+                            TextureManager.getInstance().addTexture(textureName);
+                            mTextureNames.add(textureName);
+                        }
+                    }
+                }
+                bufferedReader.close();
+                inputStreamReader.close();
+                inputStream.close();
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-		     	String tPath=mObjPath.substring(0,idx+1)+name;
+        return TextureManager.getInstance().getTextureCount();
+    }
 
-		     	Log.e("TAG","texure path:"+tPath);
+    /**
+     * 加载所有纹理
+     */
+    private void loadTextures() {
 
-		     	try {
-					Bitmap bmp = BitmapFactory.decodeFile(tPath);
-					Bitmap inputBmp = bmp;
-					int w = bmp.getWidth();
-					if ((w & (w - 1)) != 0) { //w不是2的n次幂,需要特殊处理
+        TextureManager tm = TextureManager.getInstance();
+        for (int i = 0; i < mTextureNames.size(); i++) {
+            String name = mTextureNames.get(i);
+            Log.e("TAG", "texure name" + name);
+            if (tm.containsTexture(name)) {
+                tm.removeAndUnload(name, fb);
+            } else {
+                int idx = mObjPath.lastIndexOf('/');
 
-						inputBmp = scaleBitmap(bmp);
-					}
+                String tPath = mObjPath.substring(0, idx + 1) + name;
 
-					Texture texture = new Texture(inputBmp);
-					Log.e("TAG", "纹理添加成功");
-					tm.addTexture(name, texture);
-				}catch (Exception e){
+                Log.e("TAG", "texure path:" + tPath);
 
-                     e.printStackTrace();
-				}
-			 }
-		}
-	}
+                try {
+                    Bitmap bmp = BitmapFactory.decodeFile(tPath);
+                    Bitmap inputBmp = bmp;
+                    int w = bmp.getWidth();
+                    if ((w & (w - 1)) != 0) { //w不是2的n次幂,需要特殊处理
 
-	public Bitmap scaleBitmap(Bitmap bitmap){
-        int w=bitmap.getWidth();
-        int h=bitmap.getHeight();
-        int destW=1024;
-        int destH=h*destW/w;
+                        inputBmp = scaleBitmap(bmp);
+                    }
 
-        Bitmap newBm=Bitmap.createScaledBitmap(bitmap,destW,destH,true);
+                    Texture texture = new Texture(inputBmp);
+                    Log.e("TAG", "纹理添加成功");
+                    tm.addTexture(name, texture);
+                } catch (Exception e) {
+
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public Bitmap scaleBitmap(Bitmap bitmap) {
+        int w = bitmap.getWidth();
+        int h = bitmap.getHeight();
+        int destW = 1024;
+        int destH = h * destW / w;
+
+        Bitmap newBm = Bitmap.createScaledBitmap(bitmap, destW, destH, true);
 
         return newBm;
-	}
+    }
 }

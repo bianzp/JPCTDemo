@@ -12,5 +12,5 @@ newmtl Material__37
 	Kd 0.5880 0.5880 0.5880
 	Ks 0.5400 0.5400 0.5400
 	Ke 0.0000 0.0000 0.0000
-	map_Ka C:\Users\Wolf\Desktop\zhi nan zhen-(1).fbm\Zhi Nan Zhen.png
-	map_Kd C:\Users\Wolf\Desktop\zhi nan zhen-(1).fbm\Zhi Nan Zhen.png
+	map_Ka Zhi Nan Zhen.png
+	map_Kd Zhi Nan Zhen.png
