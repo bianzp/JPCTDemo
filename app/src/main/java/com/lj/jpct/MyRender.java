@@ -22,6 +22,7 @@ import com.threed.jpct.World;
 import com.threed.jpct.util.BitmapHelper;
 import com.threed.jpct.util.MemoryHelper;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,6 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -55,6 +57,7 @@ public class MyRender implements GLSurfaceView.Renderer {
 
     private List<String> mTextureNames;//多张纹理贴图的
     private String mObjPath;//模型路径
+    private boolean flag;
 
     // 行走动画
     private int an = 2;
@@ -62,6 +65,36 @@ public class MyRender implements GLSurfaceView.Renderer {
 
     public MyRender(Context c) {
         mContext = c;
+    }
+
+    public void initTexture() {
+        //纹理
+        List<String> list = new ArrayList<String>(TextureManager.getInstance().getNames());
+        for (int i = 0; i < list.size() - 1; i++) {
+            BufferedInputStream bis = null;
+            try {
+                bis = new BufferedInputStream(mContext.getAssets().open(list.get(i)));
+                Bitmap bm = BitmapFactory.decodeStream(bis);
+                Log.d("textureName:", list.get(i));
+                Texture texture = new Texture(BitmapHelper.rescale(bm, 256, 256));
+                TextureManager.getInstance().replaceTexture(list.get(i), texture);
+                bis.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void replaceTexture() {
+        Texture texture;
+        if (flag) {
+            flag = false;
+            texture = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.skin)), 256, 256));
+        } else {
+            flag = true;
+            texture = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.pikagen)), 256, 256));
+        }
+        TextureManager.getInstance().replaceTexture("skin.png", texture);
     }
 
     public void onSurfaceChanged(GL10 gl, int w, int h) {
@@ -75,35 +108,23 @@ public class MyRender implements GLSurfaceView.Renderer {
 
         GLES20.glViewport(0, 0, w, h);
 
-        gl.glClearColor(1.0f, 1.0f, 1.0f, 0.5f);
+        gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         world = new World();
         // 设置了环境光源强度。负:整个场景会变暗;正:将照亮了一切。
-        world.setAmbientLight(100, 100, 100);
-
+        world.setAmbientLight(150, 150, 150);
         // 在World中创建一个新的光源
         sun = new Light(world);
         sun.setIntensity(50, 50, 50);
 
-
-        Texture texture4 = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.demo)), 256, 256));
-        TextureManager.getInstance().addTexture("demo.png", texture4);
-
-        Texture texture5 = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.demo1)), 64, 64));
-
-        TextureManager.getInstance().addTexture("demo1.png", texture5);
-
-        Texture texture6 = new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.demo2)), 64, 64));
-
-        TextureManager.getInstance().addTexture("demo2.JPG", texture6);
-
         //3D对象
-        mZhi = loadObjModel("male02.obj", "male02.mtl", 0.1f);
-//        mZhi.setTexture("pikagen.png");
+        mZhi = loadObjModel("skin.obj", "skin.mtl", 0.05f);
+        //mZhi.setTexture("pikagen.png");
         mZhi.strip();
         mZhi.build();
         //将Object3D对象添加到world集合
         world.addObject(mZhi);
+        initTexture();
 
         Camera cam = world.getCamera();
         cam.moveCamera(Camera.CAMERA_MOVEOUT, 10);// 以50有速度向后移动Camera（相对于目前的方向）
@@ -291,7 +312,6 @@ public class MyRender implements GLSurfaceView.Renderer {
             e.printStackTrace();
         }
         Object3D[] model = Loader.loadOBJ(objIs, mtlIs, scale);
-        Log.d("aa", "aaa");
         Object3D obj = new Object3D(0);
         Object3D temp = null;
         for (int i = 0; i < model.length; i++) {

@@ -4,6 +4,8 @@ import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MotionEvent;
+import android.view.View;
+import android.widget.Button;
 
 import com.threed.jpct.FrameBuffer;
 import com.threed.jpct.Light;
@@ -23,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private static MainActivity master = null;
 
     private GLSurfaceView mGLView;
+    private Button btn;
     private MyRender render = null;
     private FrameBuffer fb = null;
     private World world = null;
@@ -41,14 +44,13 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         if (master != null) {
             copy(master);
         }
-
         super.onCreate(savedInstanceState);
-        mGLView = new GLSurfaceView(getApplication());
-
+        setContentView(R.layout.activity_main);
+        mGLView = findViewById(R.id.glsf);
+        btn = findViewById(R.id.btn);
         mGLView.setEGLConfigChooser(new GLSurfaceView.EGLConfigChooser() {
             public EGLConfig chooseConfig(EGL10 egl, EGLDisplay display) {
                 // Ensure that we get a 16bit framebuffer. Otherwise, we'll fall
@@ -60,17 +62,21 @@ public class MainActivity extends AppCompatActivity {
                 return configs[0];
             }
         });
-
         render = new MyRender(this);
         mGLView.setRenderer(render);
-        setContentView(mGLView);
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                render.replaceTexture();
+            }
+        });
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         mGLView.onPause();
-       // render.cleanUp();
+        // render.cleanUp();
     }
 
     @Override
